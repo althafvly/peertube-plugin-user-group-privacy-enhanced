@@ -123,6 +123,12 @@ export class SettingsGui {
         
         ${channelsHtml}
         <button type="button" class="peertube-button orange-button" data-action="add-channel" style="margin-top: 10px;">+ Add Channel Route...</button>
+
+        <hr style="margin: 30px 0; border: 0; border-top: 1px solid var(--grey-border);" />
+        
+        <h2 style="margin-top: 0; font-size: 1.5em;">Sync Missing Videos</h2>
+        <p class="form-text text-muted" style="margin-bottom: 20px;">Click below to automatically back-assign newly created groups to old videos missing their assignment:</p>
+        <button type="button" class="peertube-button orange-button" data-action="sync-videos">Refresh / Auto-Sync Videos</button>
       </div>
     `
   }
@@ -162,6 +168,11 @@ export class SettingsGui {
         const i = parseInt(target.dataset.index!)
         this.channelMap.splice(i, 1)
         this.saveAndRender()
+      } else if (action === 'sync-videos') {
+        fetch('/plugins/peertube-plugin-user-group-privacy-enhanced/router/sync-videos', { method: 'POST' })
+          .then(r => r.json())
+          .then(d => alert('Success! System auto-assigned ' + d.assigned + ' missing videos.'))
+          .catch(e => alert('Error syncing videos: ' + e))
       }
     })
 
