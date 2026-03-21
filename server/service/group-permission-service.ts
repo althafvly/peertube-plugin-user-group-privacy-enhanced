@@ -28,12 +28,18 @@ export class GroupPermissionService {
 
     const videoGroups = await this.dbService.getVideoGroupPermissions(videoId)
 
-    // If video has no group restrictions, deny access (video is restricted but user not in groups)
+    // If video has no group restrictions, allow access (so regular public videos don't disappear)
     if (videoGroups.length === 0) {
-      return false
+      return true
     }
 
     const userGroups = await this.dbService.getUserGroupsForUser(userId)
+
+    // Bypass check: Users inside the 'admin' or 'superuser' groups can view ALL videos
+    if (userGroups.includes('admin') || userGroups.includes('superuser')) {
+      return true
+    }
+
     const hasAccess = videoGroups.some(group => userGroups.includes(group))
 
     if (!hasAccess) {
