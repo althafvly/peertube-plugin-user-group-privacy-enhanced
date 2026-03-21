@@ -46,7 +46,8 @@ For example:
   Click below to automatically back-assign newly created groups to old videos missing their assignment:
   <br /><br />
   <button type="button" class="peertube-button orange-button" onclick="fetch('/plugins/peertube-plugin-user-group-privacy-enhanced/router/sync-videos', {method: 'POST'}).then(r=>r.json()).then(d=>alert('Success! System auto-assigned '+d.assigned+' missing videos.')).catch(e=>alert('Error syncing videos: '+e))">Refresh / Auto-Sync Videos</button>
-</div>`
+</div>
+<div id="ugpl-interactive-gui-mount" style="position: absolute; top:0; left:0; width:100%; z-index: 100; background: var(--mainBackgroundColor);"></div>`
   })
   registerSetting({
     name: 'channel-group-map',
