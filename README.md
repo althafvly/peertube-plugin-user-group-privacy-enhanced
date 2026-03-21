@@ -7,7 +7,8 @@ In the Plugin Settings as administrator you can define groups of use names. Ever
 ## How it works
 In the plugin settings (accessible by admins) you can define groups containing user names. The plugin uses a YAML-like structure for that:
 ```yaml
-- group_name: Group 1
+- id: group_1
+  group_name: Group 1
   members:
     - user1
     - user2
@@ -24,8 +25,7 @@ After saving the groups every video will have the options to select the groups t
 
 ## Future Ideas
 Ideas how to improve this plugin:
-- Give groups IDs so that the name can be changed without deleting and recreating the group
-- Only show groups in video settings if privacy is INTERNAL
+- Add an API to manage groups remotely
 
 ## Development
 To quickly update the plugin in the debugging instance run `npm run cli:reinstall`

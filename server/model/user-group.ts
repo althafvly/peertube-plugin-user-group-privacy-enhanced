@@ -1,10 +1,11 @@
 export class UserGroup {
-    name: string;
-    members: string[];
+  configId: string
+  name: string
+  members: string[]
 
-    constructor(name: string) {
-        this.name = name;
-        this.members = [];
-    }
-
+  constructor (configId: string, name: string) {
+    this.configId = configId || name
+    this.name = name
+    this.members = []
+  }
 }

@@ -10,23 +10,23 @@ const VideoPlaylistPrivacy = {
   UNLISTED: 2
 } as const
 
-async function register(registerServerOptions: RegisterServerOptions): Promise<void> {
+async function register (registerServerOptions: RegisterServerOptions): Promise<void> {
   const { getRouter, registerSetting, settingsManager, registerHook, peertubeHelpers } = registerServerOptions
-  
+
   // Dependency Injection
   const migrationRunner = new MigrationRunner(peertubeHelpers.database, peertubeHelpers.logger)
   const dbService = new DbService(registerServerOptions)
-  const routeHandlerFactory = new RouteHandlerFactory(registerServerOptions, dbService)
   const groupPermissionServices = new GroupPermissionService(registerServerOptions, dbService)
+  const routeHandlerFactory = new RouteHandlerFactory(registerServerOptions, dbService, groupPermissionServices)
   const hookHandlerFactory = new HookHandlerFactory(registerServerOptions, groupPermissionServices)
-  
+
   // Configuration flags
   const REINITIALIZE_DB = false
-  
+
   await migrationRunner.initializeDatabase(REINITIALIZE_DB)
-  
+
   registerSetting({
-    name: "user-group-definition",
+    name: 'user-group-definition',
     label: 'User Group Definition',
     type: 'markdown-text',
     private: true,
@@ -37,12 +37,14 @@ For example:
   members:
     - root
     - user1
-</pre>`})
-  settingsManager.onSettingsChange((settings) => groupPermissionServices.updateUserGroups(settings)) 
+</pre>`
+  })
+  settingsManager.onSettingsChange(async (settings) => groupPermissionServices.updateUserGroups(settings))
 
   getRouter().get('/user-groups', routeHandlerFactory.createUserGroupsRouteHandler())
   getRouter().get('/user-groups/current-user', routeHandlerFactory.createUserGroupsForCurrentUserRouteHandler())
   getRouter().get('/video-groups/:videoShortUUID', routeHandlerFactory.createVideoGroupsRouteHandler())
+  getRouter().post('/sync-videos', routeHandlerFactory.createSyncVideosRouteHandler())
 
   registerHook({
     target: 'action:api.video.updated',
@@ -96,10 +98,9 @@ For example:
   // Disable PUBLIC and UNLISTED privacy option for playlists, because currently blocked videos remain visible in playlist thumbnails
   registerServerOptions.playlistPrivacyManager.deleteConstant(VideoPlaylistPrivacy.PUBLIC)
   registerServerOptions.playlistPrivacyManager.deleteConstant(VideoPlaylistPrivacy.UNLISTED)
+}
 
-  }
-
-async function unregister(): Promise<void> { }
+async function unregister (): Promise<void> { }
 
 module.exports = {
   register,

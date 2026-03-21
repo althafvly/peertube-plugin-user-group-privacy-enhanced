@@ -1,160 +1,187 @@
-import { PeerTubeHelpers, RegisterServerOptions } from "@peertube/peertube-types";
-import { Logger } from "winston";
-import { UserGroup } from "../model/user-group";
+import { PeerTubeHelpers, RegisterServerOptions } from '@peertube/peertube-types'
+import { Logger } from 'winston'
+import { UserGroup } from '../model/user-group'
 
 export class DbService {
+  private readonly logger: Logger
+  private readonly peertubeHelpers: PeerTubeHelpers
 
-    private logger: Logger
-    private peertubeHelpers: PeerTubeHelpers
+  constructor (
+    registerServerOptions: RegisterServerOptions
+  ) {
+    this.logger = registerServerOptions.peertubeHelpers.logger
+    this.peertubeHelpers = registerServerOptions.peertubeHelpers
+  }
 
-    constructor(
-        registerServerOptions: RegisterServerOptions,
-    ) {
-        this.logger = registerServerOptions.peertubeHelpers.logger;
-        this.peertubeHelpers = registerServerOptions.peertubeHelpers;
-    }
+  public async updateUserGroups (userGroups: UserGroup[]) {
+    // Get current groups from database
+    const currentGroups = await this.getAllUserGroupsWithIds()
+    const newGroupConfigIds = userGroups.map(g => g.configId)
 
-    public async updateUserGroups(userGroups: UserGroup[]) {
-        // Get current groups from database
-        const currentGroups = await this.getAllUserGroupsWithIds();
-        const newGroupNames = userGroups.map(g => g.name);
-        
-        // Find groups to delete (exist in DB but not in new config)
-        const groupsToDelete = currentGroups.filter(current => 
-            !newGroupNames.includes(current.name)
-        );
-        
-        // Delete video associations and user associations for removed groups
-        for (const groupToDelete of groupsToDelete) {
-            await this.peertubeHelpers.database.query(
+    // Find groups to delete (exist in DB but not in new config)
+    const groupsToDelete = currentGroups.filter(current =>
+      !newGroupConfigIds.includes(current.configId)
+    )
+
+    // Delete video associations and user associations for removed groups
+    for (const groupToDelete of groupsToDelete) {
+      await this.peertubeHelpers.database.query(
                 `DELETE FROM user_group_2_video WHERE user_group_id = ${groupToDelete.id}`
-            );
-            await this.peertubeHelpers.database.query(
+      )
+      await this.peertubeHelpers.database.query(
                 `DELETE FROM user_group_2_user WHERE user_group_id = ${groupToDelete.id}`
-            );
-            await this.peertubeHelpers.database.query(
+      )
+      await this.peertubeHelpers.database.query(
                 `DELETE FROM user_group WHERE id = ${groupToDelete.id}`
-            );
-        }
-        
-        // Delete all user associations (will be recreated)
-        await this.peertubeHelpers.database.query('DELETE FROM user_group_2_user');
-        
-        // Process each group from config
-        for (const group of userGroups) {
-            // Check if group already exists
-            const existingGroup = currentGroups.find(current => current.name === group.name);
-            let groupId: number;
-            
-            if (existingGroup) {
-                // Group exists, use existing ID
-                groupId = existingGroup.id;
-            } else {
-                // Create new group
-                const [insertResult] = await this.peertubeHelpers.database.query(
-                    `INSERT INTO user_group (group_name) VALUES ('${group.name}') RETURNING id`
-                );
-                groupId = insertResult[0].id;
-            }
-            
-            // Add user associations (always recreated)
-            const memberUserIds = await Promise.all(
-                group.members.map(userName => this.getUserIdByName(userName))
-            );
-            
-            for (const userId of memberUserIds) {
-                if (userId) {
-                    await this.peertubeHelpers.database.query(
-                        `INSERT INTO user_group_2_user (user_group_id, user_id) VALUES (${groupId}, ${userId})`
-                    );
-                }
-            }
-        }
-        
-        this.logger.info(`Updated ${userGroups.length} user groups. Deleted ${groupsToDelete.length} removed groups.`);
+      )
     }
 
-    private async getUserIdByName(userName: string): Promise<number | null> {
-        const result = await this.peertubeHelpers.database.query(
-            `SELECT id FROM "user" WHERE username = '${userName}'`
-        );
-        const [rows] = result;
-        return rows.length > 0 ? rows[0].id : null;
-    }
-    
-    public async setVideoGroupPermissionsByIds(videoId: number, groupIds: number[]) {
-        await this.peertubeHelpers.database.query(
-            `DELETE FROM user_group_2_video WHERE video_id = ${videoId}`
-        );
-        
-        for (const groupId of groupIds) {
-            await this.peertubeHelpers.database.query(
-                `INSERT INTO user_group_2_video (user_group_id, video_id) VALUES (${groupId}, ${videoId})`
-            );
+    // Delete all user associations (will be recreated)
+    await this.peertubeHelpers.database.query('DELETE FROM user_group_2_user')
+
+    // Process each group from config
+    for (const group of userGroups) {
+      // Check if group already exists
+      const existingGroup = currentGroups.find(current => current.configId === group.configId)
+      let groupId: number
+
+      if (existingGroup) {
+        // Group exists, use existing ID
+        groupId = existingGroup.id
+
+        // Update name if changed
+        if (existingGroup.name !== group.name) {
+          await this.peertubeHelpers.database.query(
+                        `UPDATE user_group SET group_name = '${group.name}' WHERE id = ${groupId}`
+          )
         }
+      } else {
+        // Create new group
+        const [insertResult] = await this.peertubeHelpers.database.query(
+                    `INSERT INTO user_group (config_id, group_name) VALUES ('${group.configId}', '${group.name}') RETURNING id`
+        )
+        groupId = insertResult[0].id
+      }
+
+      // Add user associations (always recreated)
+      const memberUserIds = await Promise.all(
+        group.members.map(async userName => this.getUserIdByName(userName))
+      )
+
+      for (const userId of memberUserIds) {
+        if (userId) {
+          await this.peertubeHelpers.database.query(
+                        `INSERT INTO user_group_2_user (user_group_id, user_id) VALUES (${groupId}, ${userId})`
+          )
+        }
+      }
     }
-    
-    public async getUserGroupsForUser(userId: number): Promise<string[]> {
-        const result = await this.peertubeHelpers.database.query(`
+
+    this.logger.info(`Updated ${userGroups.length} user groups. Deleted ${groupsToDelete.length} removed groups.`)
+  }
+
+  private async getUserIdByName (userName: string): Promise<number | null> {
+    const result = await this.peertubeHelpers.database.query(
+            `SELECT id FROM "user" WHERE username = '${userName}'`
+    )
+    const [rows] = result
+    return rows.length > 0 ? rows[0].id : null
+  }
+
+  public async setVideoGroupPermissionsByIds (videoId: number, groupIds: number[]) {
+    await this.peertubeHelpers.database.query(
+            `DELETE FROM user_group_2_video WHERE video_id = ${videoId}`
+    )
+
+    for (const groupId of groupIds) {
+      await this.peertubeHelpers.database.query(
+                `INSERT INTO user_group_2_video (user_group_id, video_id) VALUES (${groupId}, ${videoId})`
+      )
+    }
+  }
+
+  public async getUserGroupsForUser (userId: number): Promise<string[]> {
+    const result = await this.peertubeHelpers.database.query(`
             SELECT ug.group_name 
             FROM user_group ug
             JOIN user_group_2_user ugu ON ug.id = ugu.user_group_id
             WHERE ugu.user_id = ${userId}
-        `);
-        const [rows] = result;
-        return rows.map((row: any) => row.group_name);
-    }
-    
-    public async getVideoGroupPermissions(videoId: number): Promise<string[]> {
-        const result = await this.peertubeHelpers.database.query(`
+        `)
+    const [rows] = result
+    return rows.map((row: any) => row.group_name)
+  }
+
+  public async getVideoGroupPermissions (videoId: number): Promise<string[]> {
+    const result = await this.peertubeHelpers.database.query(`
             SELECT ug.group_name 
             FROM user_group ug
             JOIN user_group_2_video ugv ON ug.id = ugv.user_group_id
             WHERE ugv.video_id = ${videoId}
-        `);
-        const [rows] = result;
-        return rows.map((row: any) => row.group_name);
-    }
-    
-    public async getAllUserGroupsWithIds(): Promise<{id: number, name: string}[]> {
-        const result = await this.peertubeHelpers.database.query(
-            `SELECT id, group_name as name FROM user_group ORDER BY group_name`
-        );
-        const [rows] = result;
-        return rows;
-    }
-    
-    public async getVideoGroupIds(videoId: number): Promise<number[]> {
-        const result = await this.peertubeHelpers.database.query(`
+        `)
+    const [rows] = result
+    return rows.map((row: any) => row.group_name)
+  }
+
+  public async getAllUserGroupsWithIds (): Promise<Array<{ id: number, configId: string, name: string }>> {
+    const result = await this.peertubeHelpers.database.query(
+      'SELECT id, config_id as "configId", group_name as name FROM user_group ORDER BY group_name'
+    )
+    const [rows] = result
+    return rows
+  }
+
+  public async getVideoGroupIds (videoId: number): Promise<number[]> {
+    const result = await this.peertubeHelpers.database.query(`
             SELECT user_group_id 
             FROM user_group_2_video 
             WHERE video_id = ${videoId}
-        `);
-        const [rows] = result;
-        return rows.map((row: any) => row.user_group_id);
-    }
-    
-    public async getVideoGroupsByUUID(videoUUID: string): Promise<number[]> {
-        const result = await this.peertubeHelpers.database.query(`
+        `)
+    const [rows] = result
+    return rows.map((row: any) => row.user_group_id)
+  }
+
+  public async getVideoGroupsByUUID (videoUUID: string): Promise<number[]> {
+    const result = await this.peertubeHelpers.database.query(`
             SELECT ugv.user_group_id
             FROM user_group_2_video ugv
             JOIN video v ON ugv.video_id = v.id
             WHERE v.uuid::text = '${videoUUID}'
-        `);
-        const [rows] = result;
-        return rows.map((row: any) => row.user_group_id);
-    }
-    
-    public async isVideoOwner(userId: number, videoId: number): Promise<boolean> {
-        const result = await this.peertubeHelpers.database.query(`
+        `)
+    const [rows] = result
+    return rows.map((row: any) => row.user_group_id)
+  }
+
+  public async isVideoOwner (userId: number, videoId: number): Promise<boolean> {
+    const result = await this.peertubeHelpers.database.query(`
             SELECT COUNT(*) as count 
             FROM video v
             JOIN "videoChannel" vc ON v."channelId" = vc.id
             JOIN account a ON vc."accountId" = a.id
             WHERE v.id = ${videoId} AND a."userId" = ${userId}
-        `);
-        const [rows] = result;
-        return parseInt(rows[0].count) > 0;
-    }
+        `)
+    const [rows] = result
+    return parseInt(rows[0].count) > 0
+  }
 
+  public async getVideoChannelName (videoId: number): Promise<string | null> {
+    const result = await this.peertubeHelpers.database.query(`
+            SELECT vc.name
+            FROM video v
+            JOIN "videoChannel" vc ON v."channelId" = vc.id
+            WHERE v.id = ${videoId}
+        `)
+    const [rows] = result
+    return rows.length > 0 ? rows[0].name : null
+  }
+
+  public async getUnassignedVideoIds (): Promise<number[]> {
+    const result = await this.peertubeHelpers.database.query(`
+            SELECT v.id
+            FROM video v
+            LEFT JOIN user_group_2_video ugv ON v.id = ugv.video_id
+            WHERE ugv.video_id IS NULL AND v.state = 1
+        `)
+    const [rows] = result
+    return rows.map((row: any) => row.id)
+  }
 }
