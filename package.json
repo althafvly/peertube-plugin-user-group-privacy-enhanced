@@ -1,13 +1,13 @@
 {
   "name": "peertube-plugin-user-group-privacy-enhanced",
   "description": "A Peertube Plugin to define groups of users and then share videos only with certain groups",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "license": "AGPL-3.0",
   "author": {
-    "name": "Robin Niemann",
-    "url": "https://github.com/RobinNiemann"
+    "name": "althafvly",
+    "url": "https://github.com/althafvly"
   },
-  "bugs": "https://github.com/RobinNiemann/peertube-plugin-user-group-privacy-enhanced/issues",
+  "bugs": "https://github.com/althafvly/peertube-plugin-user-group-privacy-layer/issues",
   "clientScripts": [
     {
       "script": "dist/client/common-client-plugin.js",
@@ -28,7 +28,7 @@
   "engine": {
     "peertube": ">=7.0.0"
   },
-  "homepage": "https://github.com/RobinNiemann/peertube-plugin-user-group-privacy-enhanced",
+  "homepage": "https://github.com/althafvly/peertube-plugin-user-group-privacy-layer",
   "keywords": [
     "peertube",
     "plugin"
