@@ -7,6 +7,8 @@ import { USER_GROUP_SELECTION_FIELD } from '../../shared/constants'
 export class GroupPermissionService {
   private readonly logger: Logger
   private readonly dbService: DbService
+  private channelGroupMap: Record<string, string> = {}
+  private fallbackGroup: string | null = 'default'
 
   constructor (
     registerServerOptions: RegisterServerOptions,
@@ -82,7 +84,7 @@ export class GroupPermissionService {
     this.logger.info(`Loaded plugin data for video ${videoId}: ${USER_GROUP_SELECTION_FIELD} = ${video.pluginData[USER_GROUP_SELECTION_FIELD]}`)
   }
 
-  public async updateUserGroups (settings: SettingEntries): Promise<any> {
+  public async updateSettings (settings: SettingEntries): Promise<any> {
     const userGroupDefinition = settings['user-group-definition'] as string
 
     if (!userGroupDefinition || userGroupDefinition.trim() === '') {
@@ -110,6 +112,31 @@ export class GroupPermissionService {
       this.logger.error('Failed to parse user group definition:', error)
     }
 
+    // Parse Channel Map
+    const channelMapDefinition = settings['channel-group-map'] as string
+    if (channelMapDefinition && channelMapDefinition.trim() !== '') {
+      try {
+        const parsedMap = yamlParse(channelMapDefinition)
+        const map: Record<string, string> = {}
+        if (Array.isArray(parsedMap)) {
+          parsedMap.forEach(item => {
+            if (item.channel_name && item.group_name) {
+              map[item.channel_name] = String(item.group_name)
+            }
+          })
+        }
+        this.channelGroupMap = map
+        this.logger.info(`Parsed ${Object.keys(map).length} auto-assign channel mapping rules.`)
+      } catch (error) {
+        this.logger.error('Failed to parse channel group map YAML:', error)
+      }
+    } else {
+      this.channelGroupMap = {}
+    }
+
+    // Parse Fallback Group
+    this.fallbackGroup = (settings['fallback-group'] as string || '').trim() || null
+
     return Promise.resolve()
   }
 
@@ -119,12 +146,12 @@ export class GroupPermissionService {
 
     const channelName = await this.dbService.getVideoChannelName(videoId)
 
-    const CHANNEL_GROUP_MAP: Record<string, string> = {
-      'kid1-channel': 'kid1',
-      'kid2-channel': 'kid2'
-    }
+    const targetGroupName = (channelName && this.channelGroupMap[channelName]) ? this.channelGroupMap[channelName] : this.fallbackGroup
 
-    const targetGroupName = (channelName && CHANNEL_GROUP_MAP[channelName]) ? CHANNEL_GROUP_MAP[channelName] : 'default'
+    if (!targetGroupName) {
+      this.logger.info(`Skipped auto-assign for video ${videoId} (No fallback configured)`)
+      return false
+    }
 
     const allGroups = await this.dbService.getAllUserGroupsWithIds()
     const targetGroup = allGroups.find(g => g.name === targetGroupName)

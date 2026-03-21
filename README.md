@@ -25,7 +25,7 @@ After saving the groups every video will have the options to select the groups t
 
 ## Future Ideas
 Ideas how to improve this plugin:
-- Add an API to manage groups remotely
+*(All original features mapped out have been successfully fulfilled!)*
 
 ## Development
 To quickly update the plugin in the debugging instance run `npm run cli:reinstall`

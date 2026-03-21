@@ -48,7 +48,33 @@ For example:
   <button type="button" class="peertube-button orange-button" onclick="fetch('/plugins/peertube-plugin-user-group-privacy-enhanced/router/sync-videos', {method: 'POST'}).then(r=>r.json()).then(d=>alert('Success! System auto-assigned '+d.assigned+' missing videos.')).catch(e=>alert('Error syncing videos: '+e))">Refresh / Auto-Sync Videos</button>
 </div>`
   })
-  settingsManager.onSettingsChange(async (settings) => groupPermissionServices.updateUserGroups(settings))
+  registerSetting({
+    name: 'channel-group-map',
+    label: 'Channel to Group Auto-Assignment Map',
+    type: 'markdown-text',
+    private: true,
+    descriptionHTML: `Map channel names to their default privacy groups using a simple YAML list.
+Example:
+<pre>
+- channel_name: kid1-channel
+  group_name: kid1
+- channel_name: gaming-channel
+  group_name: gamers
+</pre>`
+  })
+
+  registerSetting({
+    name: 'fallback-group',
+    label: 'Fallback Group',
+    type: 'input',
+    private: true,
+    descriptionHTML: `If a video is uploaded to an unmapped (or missing) channel, it will optionally fall back to this group ID. Leave empty to keep videos unassigned and globally blocked. Example: <code>default</code>`
+  })
+
+  const initialSettings = await settingsManager.getSettings([])
+  await groupPermissionServices.updateSettings(initialSettings)
+
+  settingsManager.onSettingsChange(async (settings) => groupPermissionServices.updateSettings(settings))
 
   getRouter().get('/user-groups', routeHandlerFactory.createUserGroupsRouteHandler())
   getRouter().get('/user-groups/current-user', routeHandlerFactory.createUserGroupsForCurrentUserRouteHandler())
