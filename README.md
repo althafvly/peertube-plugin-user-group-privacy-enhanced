@@ -1,4 +1,4 @@
-# PeerTube plugin: User Group Privacy Layer
+# PeerTube plugin: User Group Privacy Enhanced
 
 ## About
 This plugin will add a privacy layer that allows very fine-grained privacy settings for every video.
