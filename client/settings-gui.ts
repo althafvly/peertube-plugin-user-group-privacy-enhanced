@@ -1,4 +1,4 @@
-import { parse as yamlParse, stringify as yamlStringify } from 'yaml'
+// JSON is now used natively
 
 export class SettingsGui {
   private mountPoint: HTMLElement | null = null
@@ -35,11 +35,11 @@ export class SettingsGui {
     if (cmParent) (cmParent as HTMLElement).style.display = 'none'
 
     try {
-      this.userGroups = yamlParse(this.userGroupTextarea.value) || []
+      this.userGroups = JSON.parse(this.userGroupTextarea.value) || []
     } catch (e) { this.userGroups = [] }
 
     try {
-      this.channelMap = yamlParse(this.channelMapTextarea.value) || []
+      this.channelMap = JSON.parse(this.channelMapTextarea.value) || []
     } catch (e) { this.channelMap = [] }
 
     if (!Array.isArray(this.userGroups)) this.userGroups = []
@@ -51,12 +51,12 @@ export class SettingsGui {
 
   private saveToInputs () {
     if (this.userGroupTextarea) {
-      this.userGroupTextarea.value = yamlStringify(this.userGroups)
+      this.userGroupTextarea.value = JSON.stringify(this.userGroups, null, 2)
       this.userGroupTextarea.dispatchEvent(new Event('input', { bubbles: true }))
       this.userGroupTextarea.dispatchEvent(new Event('change', { bubbles: true }))
     }
     if (this.channelMapTextarea) {
-      this.channelMapTextarea.value = yamlStringify(this.channelMap)
+      this.channelMapTextarea.value = JSON.stringify(this.channelMap, null, 2)
       this.channelMapTextarea.dispatchEvent(new Event('input', { bubbles: true }))
       this.channelMapTextarea.dispatchEvent(new Event('change', { bubbles: true }))
     }
@@ -111,7 +111,7 @@ export class SettingsGui {
     this.mountPoint.innerHTML = `
       <div style="border: 2px solid var(--grey-border); padding: 20px; border-radius: 8px;">
         <h2 style="margin-top: 0; font-size: 1.5em;">Interactive Group Manager</h2>
-        <p class="form-text text-muted" style="margin-bottom: 20px;">Use this visual editor to manage your privacy groups instead of raw YAML. Changes securely sync boundaries to the backend automatically.</p>
+        <p class="form-text text-muted" style="margin-bottom: 20px;">Use this visual editor to manage your privacy groups instead of raw JSON. Changes securely sync boundaries to the backend automatically.</p>
         
         ${groupsHtml}
         <button type="button" class="peertube-button orange-button" data-action="add-group" style="margin-top: 10px;">+ Add New Group...</button>

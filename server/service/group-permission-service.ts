@@ -1,7 +1,6 @@
 import { RegisterServerOptions, SettingEntries } from '@peertube/peertube-types'
 import { Logger } from 'winston'
 import { DbService } from './db-service'
-import { parse as yamlParse } from 'yaml'
 import { USER_GROUP_SELECTION_FIELD } from '../../shared/constants'
 
 export class GroupPermissionService {
@@ -94,7 +93,12 @@ export class GroupPermissionService {
     }
 
     try {
-      const groups = yamlParse(userGroupDefinition)
+      let groups: any[] = []
+      try {
+        groups = JSON.parse(userGroupDefinition)
+      } catch (e) {
+        this.logger.warn('Failed to parse user groups as JSON. (If you recently updated, your old YAML groups were erased because the format changed to JSON.)', e)
+      }
       this.logger.info(`Parsed ${groups?.length || 0} user groups from settings`)
 
       const userGroups = groups?.map((group: any) => {
@@ -116,7 +120,7 @@ export class GroupPermissionService {
     const channelMapDefinition = settings['channel-group-map'] as string
     if (channelMapDefinition && channelMapDefinition.trim() !== '') {
       try {
-        const parsedMap = yamlParse(channelMapDefinition)
+        const parsedMap = JSON.parse(channelMapDefinition)
         const map: Record<string, string> = {}
         if (Array.isArray(parsedMap)) {
           parsedMap.forEach(item => {
