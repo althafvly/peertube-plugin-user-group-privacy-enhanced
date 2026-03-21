@@ -5,20 +5,11 @@ This plugin will add a privacy layer that allows very fine-grained privacy setti
 In the Plugin Settings as administrator you can define groups of use names. Every video will then have the option to select any number of groups and the video will then only be accessible to a user if the user is part of any selected group.
 
 ## How it works
-In the plugin settings (accessible by admins) you can define groups containing user names. The plugin uses a YAML-like structure for that:
-```yaml
-- id: admin
-  group_name: admin
-  members:
-    - root
-    - user1
-- id: group_1
-  group_name: Group 1
-  members:
-    - user2
-```
+This plugin features a robust **Interactive Web GUI** right inside your PeerTube admin settings! You can visually create groups, add member usernames, and map channel routing rules using our dynamic tables without touching any raw code.
 
-After saving the groups every video will have the options to select the groups to share it with. By default no group is checked so everyone can see it (if the video is public). 
+*(Under the hood, all assignments are securely stored in your database as native Javascript `JSON` arrays so they are extremely fast and lightweight.)*
+
+After creating your groups in the settings, every video edit page will display a set of dynamic checkboxes. Simply select the groups you want to share the video with! By default, no group is checked, meaning the video will fall back to its native PeerTube visibility (e.g., everyone can see it if it's explicitly set to Public).
 
 ### God Mode (Global Bypass)
 If you name a group exactly `admin` or `superuser`, any user located within that group will instantly bypass all restrictions and have permanent access to view every video on your PeerTube server.
