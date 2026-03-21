@@ -69,7 +69,7 @@ Example:
     label: 'Fallback Group',
     type: 'input',
     private: true,
-    descriptionHTML: `If a video is uploaded to an unmapped (or missing) channel, it will optionally fall back to this group ID. Leave empty to keep videos unassigned and globally blocked. Example: <code>default</code>`
+    descriptionHTML: 'If a video is uploaded to an unmapped (or missing) channel, it will optionally fall back to this group ID. Leave empty to keep videos unassigned and globally blocked. Example: <code>default</code>'
   })
 
   const initialSettings = await settingsManager.getSettings([])

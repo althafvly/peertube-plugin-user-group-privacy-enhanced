@@ -21,7 +21,7 @@ export class UserGroupSelectionUpdater {
   private setupPrivacyVisibilityToggling (): void {
     const checkVisibility = () => {
       // Find the select element for privacy
-      const privacySelect = document.querySelector('select[name="privacy"], select#privacy, select[formcontrolname="privacy"]') as HTMLSelectElement | null
+      const privacySelect = document.querySelector('select[name="privacy"], select#privacy, select[formcontrolname="privacy"]') as HTMLSelectElement
 
       const ourContainer = document.querySelector('.user-group-selector')
       if (!ourContainer) return

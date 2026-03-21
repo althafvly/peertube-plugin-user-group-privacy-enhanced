@@ -170,7 +170,7 @@ export class SettingsGui {
         this.saveAndRender()
       } else if (action === 'sync-videos') {
         fetch('/plugins/peertube-plugin-user-group-privacy-enhanced/router/sync-videos', { method: 'POST' })
-          .then(r => r.json())
+          .then(async r => r.json())
           .then(d => alert('Success! System auto-assigned ' + d.assigned + ' missing videos.'))
           .catch(e => alert('Error syncing videos: ' + e))
       }
