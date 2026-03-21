@@ -33,11 +33,20 @@ async function register (registerServerOptions: RegisterServerOptions): Promise<
     descriptionHTML: `Use Markdown bullet points to create a YAML-like structure for user groups.
 For example:
 <pre>
-- group_name: Group 1
+- id: admin
+  group_name: admin
   members:
     - root
+- group_name: Group 1
+  members:
     - user1
-</pre>`
+</pre>
+<div style="margin-top: 15px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+  <strong>Sync Missing Videos</strong><br />
+  Click below to automatically back-assign newly created groups to old videos missing their assignment:
+  <br /><br />
+  <button type="button" class="peertube-button orange-button" onclick="fetch('/plugins/peertube-plugin-user-group-privacy-enhanced/router/sync-videos', {method: 'POST'}).then(r=>r.json()).then(d=>alert('Success! System auto-assigned '+d.assigned+' missing videos.')).catch(e=>alert('Error syncing videos: '+e))">Refresh / Auto-Sync Videos</button>
+</div>`
   })
   settingsManager.onSettingsChange(async (settings) => groupPermissionServices.updateUserGroups(settings))
 
