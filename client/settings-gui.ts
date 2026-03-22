@@ -18,21 +18,69 @@ export class SettingsGui {
     }, 1000)
   }
 
+  /** Find a textarea by multiple heuristics, since PeerTube assigns names/IDs inconsistently across versions */
+  private findTextarea (fieldName: string): HTMLTextAreaElement | null {
+    // Strategy 1: name or id contains the field name (most reliable)
+    let el = document.querySelector(`textarea[id*="${fieldName}"], textarea[name*="${fieldName}"]`) as HTMLTextAreaElement | null
+    if (el) return el
+
+    // Strategy 2: look for the <peertube-plugin-custom-field-markdown-text> wrapper whose
+    // label (or inner text) contains the field name keywords
+    const allMarkdownFields = document.querySelectorAll('peertube-plugin-custom-field-markdown-text')
+    for (const wrapper of Array.from(allMarkdownFields)) {
+      if (wrapper.textContent?.toLowerCase().includes(fieldName.replace(/-/g, ' '))) {
+        const area = wrapper.querySelector('textarea')
+        if (area) return area as HTMLTextAreaElement
+      }
+    }
+
+    // Strategy 3: find by nearby label text
+    const labels = document.querySelectorAll('label')
+    const keyword = fieldName.replace(/-/g, ' ').toLowerCase()
+    for (const label of Array.from(labels)) {
+      if (label.textContent?.toLowerCase().includes(keyword)) {
+        const forId = label.getAttribute('for')
+        if (forId) {
+          el = document.getElementById(forId) as HTMLTextAreaElement | null
+          if (el && el.tagName === 'TEXTAREA') return el
+        }
+        // label wraps the textarea
+        el = label.querySelector('textarea') as HTMLTextAreaElement | null
+        if (el) return el
+        // sibling
+        el = label.nextElementSibling as HTMLTextAreaElement | null
+        if (el && el.tagName === 'TEXTAREA') return el
+      }
+    }
+
+    return null
+  }
+
+  /** Hide the entire setting row for a given textarea element */
+  private hideSetting (textarea: HTMLTextAreaElement): void {
+    const parent = (
+      textarea.closest('peertube-plugin-custom-field-markdown-text') ||
+      textarea.closest('peertube-plugin-settings-custom-field') ||
+      textarea.closest('.form-group')
+    ) as HTMLElement | null
+    if (parent) parent.style.display = 'none'
+  }
+
   private setupGui () {
-    this.userGroupTextarea = document.querySelector('textarea[id$="user-group-definition"], textarea[name*="user-group-definition"]') as HTMLTextAreaElement
-    this.channelMapTextarea = document.querySelector('textarea[id$="channel-group-map"], textarea[name*="channel-group-map"]') as HTMLTextAreaElement
+    this.userGroupTextarea = this.findTextarea('user-group-definition')
+    this.channelMapTextarea = this.findTextarea('channel-group-map')
 
     if (!this.userGroupTextarea || !this.channelMapTextarea) {
-      console.warn('UGPL: Textareas not found, cannot mount interactive GUI.')
+      console.warn('UGPL: Textareas not found, cannot mount interactive GUI.', {
+        ug: this.userGroupTextarea,
+        cm: this.channelMapTextarea
+      })
       return
     }
 
-    // Hide original form groups
-    const ugParent = this.userGroupTextarea.closest('peertube-plugin-custom-field-markdown-text') || this.userGroupTextarea.closest('.form-group')
-    const cmParent = this.channelMapTextarea.closest('peertube-plugin-custom-field-markdown-text') || this.channelMapTextarea.closest('.form-group')
-
-    if (ugParent) (ugParent as HTMLElement).style.display = 'none'
-    if (cmParent) (cmParent as HTMLElement).style.display = 'none'
+    // Hide original setting rows
+    this.hideSetting(this.userGroupTextarea)
+    this.hideSetting(this.channelMapTextarea)
 
     try {
       this.userGroups = JSON.parse(this.userGroupTextarea.value) || []

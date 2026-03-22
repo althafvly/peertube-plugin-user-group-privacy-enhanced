@@ -26,6 +26,14 @@ async function register (registerServerOptions: RegisterServerOptions): Promise<
   await migrationRunner.initializeDatabase(REINITIALIZE_DB)
 
   registerSetting({
+    name: 'ugpl-interactive-gui',
+    label: 'Group & Channel Manager',
+    type: 'html',
+    private: false,
+    descriptionHTML: '<div id="ugpl-interactive-gui-mount"></div>'
+  })
+
+  registerSetting({
     name: 'user-group-definition',
     label: 'User Group Definition',
     type: 'markdown-text',
@@ -40,14 +48,7 @@ For example:
 - group_name: Group 1
   members:
     - user1
-</pre>
-<div style="margin-top: 15px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
-  <strong>Sync Missing Videos</strong><br />
-  Click below to automatically back-assign newly created groups to old videos missing their assignment:
-  <br /><br />
-  <button type="button" class="peertube-button orange-button" onclick="fetch('/plugins/peertube-plugin-user-group-privacy-enhanced/router/sync-videos', {method: 'POST'}).then(r=>r.json()).then(d=>alert('Success! System auto-assigned '+d.assigned+' missing videos.')).catch(e=>alert('Error syncing videos: '+e))">Refresh / Auto-Sync Videos</button>
-</div>
-<div id="ugpl-interactive-gui-mount" style="position: absolute; top:0; left:0; width:100%; z-index: 100; background: var(--mainBackgroundColor);"></div>`
+</pre>`
   })
   registerSetting({
     name: 'channel-group-map',
