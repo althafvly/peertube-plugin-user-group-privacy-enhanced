@@ -26,14 +26,6 @@ async function register (registerServerOptions: RegisterServerOptions): Promise<
   await migrationRunner.initializeDatabase(REINITIALIZE_DB)
 
   registerSetting({
-    name: 'ugpl-interactive-gui',
-    label: 'Group & Channel Manager',
-    type: 'html',
-    private: false,
-    descriptionHTML: '<div id="ugpl-interactive-gui-mount"></div>'
-  })
-
-  registerSetting({
     name: 'user-group-definition',
     label: 'User Group Definition',
     type: 'markdown-text',
