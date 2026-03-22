@@ -56,7 +56,8 @@ export class RouteHandlerFactory {
     return async (req, res, _next) => {
       try {
         await this.getAuthUser(res)
-        const videoShortUUID = req.params.videoShortUUID
+        const videoShortUUIDParam = req.params.videoShortUUID
+        const videoShortUUID = Array.isArray(videoShortUUIDParam) ? videoShortUUIDParam[0] : videoShortUUIDParam
 
         // Convert short UUID to full UUID
         const translator = shortUuid()
